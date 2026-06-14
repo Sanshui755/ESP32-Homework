@@ -13,4 +13,18 @@ void task_app_mqtt_start(void);
  */
 bool app_mqtt_is_connected(void);
 
+/**
+ * @brief Publish sensor data JSON to the MQTT data topic.
+ *        Updates cached JSON for reconnect re-publish.
+ * @return true on success, false if not connected or publish failed
+ */
+bool app_mqtt_publish_data(const char *json, int len);
+
+/**
+ * @brief Notify MQTT task that fresh sensor data is available.
+ *        MQTT task will then pull JSON from sensor_data_mgr and publish.
+ *        Safe to call from any task (including ISR-free sensor tasks).
+ */
+void app_mqtt_notify_new_data(void);
+
 #endif // TASK_APP_MQTT_H
