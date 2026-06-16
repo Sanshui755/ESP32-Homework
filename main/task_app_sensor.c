@@ -519,7 +519,7 @@ skip_imu:
         ESP_LOGI(TAG, "══════════════════════════════════════════════════");
 
         esp_task_wdt_reset();
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 

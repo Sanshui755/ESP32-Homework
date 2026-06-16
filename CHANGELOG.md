@@ -5,6 +5,88 @@
 
 ---
 
+## [0.2.0] - 2026-06-16
+
+### ESP-IDF 版本升级：v5.5.3 → v6.0.1
+
+#### 1. 组件系统变更（核心技术调整）
+- **MQTT 组件**：从 ESP-IDF 核心组件变为托管组件（Component Registry）
+  - `main/idf_component.yml` 新增声明：`espressif/mqtt: "^1.0"`
+  - 通过 `idf.py component-update` 或 Trae IDE "设置乐鑫设备目标" 触发下载
+  - 下载产物位置：`managed_components/espressif__mqtt/`
+- **I2C 驱动**：从 `driver` 元组件拆分为独立组件 `esp_driver_i2c`
+  - 新头文件路径：`driver/i2c_master.h`（New Master API）
+  - `main/CMakeLists.txt` 的 `PRIV_REQUIRES` 需显式声明 `esp_driver_i2c`
+  - 原 `driver/i2c.h`（Legacy API）在 v6.0.1 中已标记为弃用
+- **GPIO 驱动**：从 `driver` 元组件拆分为独立组件 `esp_driver_gpio`
+  - `main/CMakeLists.txt` 的 `PRIV_REQUIRES` 需显式声明 `esp_driver_gpio`
+- **顶层构建配置**：`CMakeLists.txt` 设置 `idf_build_set_property(MINIMAL_BUILD ON)`
+  - 只编译显式声明的组件，显著加快构建速度
+  - 因此 `PRIV_REQUIRES` 必须完整声明所有用到的组件（`esp_netif`、`heap`、`esp_system` 等）
+  - 当前 `PRIV_REQUIRES`：`esp_adc esp_driver_i2c esp_driver_gpio esp_wifi esp_event nvs_flash mqtt esp_netif heap esp_system`
+
+#### 2. 构建验证结果
+- **编译验证**：✅ 通过（`idf.py build` 成功生成 3 个产物：bootloader.bin、partition-table.bin、IotGateway_prj.bin）
+- **应用固件大小**：1,020,178 字节（~996 KB）
+- **factory 分区**：1,500 KB，已用 66%，剩余 34%（~503 KB）
+- **DRAM 使用**：33.88%（108,850 / 321,296 字节）
+- **Flash Code**：786,124 字节
+- **Flash Data**：145,224 字节
+
+### 多 ESP-IDF 版本开发环境支持
+
+#### 1. 在 Trae IDE 终端中激活
+- **推荐方式**：使用 ESP-IDF 官方 `export.ps1`
+  - `. "C:\Esp\v6.0.1\esp-idf\export.ps1"` 一键激活 v6.0.1
+  - 自动设置 `IDF_PATH`、工具链路径、Python 虚拟环境
+  - 在当前 shell 注册 `idf.py` 函数
+- **备选方式**：使用项目内脚本 `activate_idf.ps1`
+  - `. .\activate_idf.ps1 v6.0.1` 激活指定版本
+  - `. .\activate_idf.ps1 v5.5.3` 切换版本
+  - 功能与官方 `export.ps1` 一致，便于在 IDE 内统一管理
+- **关键注意**：必须使用 dot-source 语法（开头的 `. ` + 空格），否则 `idf.py` 无法在当前 shell 使用
+
+#### 2. ESP-IDF 各版本 PowerShell 快捷方式
+- **新增** `IDF_vX.X.X_Powershell.Ink/` 目录，收集 ESP-IDF 安装管理器自动创建的快捷方式
+  - `IDF_v5.5.3_Powershell.lnk` → v5.5.3 开发环境（对应 Python 虚拟环境 `idf5.5_py3.13_env`）
+  - `IDF_v5.5.4_Powershell.lnk` → v5.5.4 开发环境
+  - `IDF_v6.0.1_Powershell.lnk` → v6.0.1 开发环境（当前项目使用，对应 `idf6.0_py3.14_env`）
+  - `ESP-IDF安装管理器安装好每个版本会生成一个对应的快捷方式.md` → 说明文档
+  - 双击 `.lnk` 可直接打开已配置好环境变量的 PowerShell 窗口
+
+### 项目文件结构整理
+
+#### 1. 新增 Doc/ 文档目录
+- **新增** `Doc/` 目录，统一管理项目文档与图片资源
+  - `Doc/images/`：开发板照片、ESP-IDF 安装截图等（`README.md` 的图片路径同步更新：`images/` → `Doc/images/`）
+  - `Doc/操作.Prj从idf-v5.5.3移值到idf-v6.0.1.md`：ESP-IDF 版本迁移完整指南（安装管理器、组件变更、Python 环境问题解决）
+  - `Doc/操作1 把本地项目推送到一个新建的仓库.md`：Git 推送指南
+  - `Doc/V0.0 260609分析架构-DeepSeekV4Pro.md`、`-Doubuo-Seed-2-Code.md`、`-Qwen3.6-Plus.md`：AI 辅助的项目架构分析文档
+  - `Doc/task_app_mainbusiness任务中的状态机V0.0说明.md`
+  - `Doc/人岗和AI岗会话-备份-260608 11.39.md`
+
+#### 2. 聊天记录备份文件
+- **根目录新增** `Agent聊天记录_260613-2255_项目无BUG后清空对话前的备份.md`
+- **根目录新增** `Agent聊天记录_260614-1320_项目无BUG后清空对话前的备份.md`
+- 保留 AI 开发过程中的关键对话上下文，便于后续回溯与参考
+
+#### 3. ESP-IDF 多版本 Python 环境说明
+- 每个 ESP-IDF 版本有独立的 Python 虚拟环境（位于 `%USERPROFILE%\.espressif\python_env\`）
+  - `idf6.0_py3.14_env` → v6.0.1 使用（Python 3.14.6，✅ 正常）
+  - `idf5.5_py3.13_env` → v5.5.3 / v5.5.4 使用
+- 各版本虚拟环境相互独立，**无需也不应该**将 Python 加入系统 PATH
+- 激活对应版本时由 `export.ps1` 自动选择正确的 Python 环境
+
+### README 文档完善
+- **更新** 项目顶部信息：添加当前版本号 0.2.0、ESP-IDF v6.0.1、编译状态、Flash 使用摘要
+- **新增** "项目结构" 章节：树形展示 `main/`、`managed_components/`、`Doc/`、`IDF_vX.X.X_Powershell.Ink/` 等目录
+- **更新** "ESP-IDF 开发环境说明" 章节：区分官方 `export.ps1` 与项目内 `activate_idf.ps1` 两种激活方式，说明 Python 虚拟环境独立机制
+- **新增** "编译、烧录与监控" 章节：包含完整操作流程、Flash/RAM 使用数据、常用命令速查表
+- **更新** "ESP-IDF v5.5.3 → v6.0.1 迁移要点"：添加 Python 环境对比、`main/idf_component.yml`、`main/CMakeLists.txt`、`CMakeLists.txt`、`sdkconfig` 等关键配置文件的实际内容对照
+- **修复** 图片路径：`images/` → `Doc/images/`（图片资源已迁移到 `Doc/images/` 目录）
+
+---
+
 ## [0.1.0] - 2026-06-14
 
 ### 核心架构重构

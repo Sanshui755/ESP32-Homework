@@ -15,9 +15,9 @@
 static const char *MQTT_TAG = "MQTT_MGR";
 
 #define QZM_IOTGW_BROKER        "mqtt://broker.emqx.io:1883"
-#define QZM_IOTGW_SENSOR_DATA   "qzm/iotgw/sensor/data"
-#define QZM_IOTGW_LED_CONTROL   "qzm/iotgw/led/control"
-#define QZM_IOTGW_STATUS        "qzm/iotgw/status"
+#define QZM_IOTGW_SENSOR_DATA   "qzm999/iotgw/sensor/data"
+#define QZM_IOTGW_LED_CONTROL   "qzm999/iotgw/led/control"
+#define QZM_IOTGW_STATUS        "qzm999/iotgw/status"
 
 #define JSON_BUF_SIZE 512
 
