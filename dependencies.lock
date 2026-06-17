@@ -65,6 +65,16 @@ dependencies:
     - esp32s2
     - esp32s3
     version: 2.1.1
+  espressif/cjson:
+    component_hash: e788323270d90738662d66fffa910bfe1fba019bba087f01557e70c40485b469
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.7.19~2
   espressif/eppp_link:
     component_hash: 04f7f31868b8ae6014c96132740a192d09611a6e46aaa7038c865ffc7e26b38f
     dependencies:
@@ -89,6 +99,16 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 1.1.2
+  espressif/esp_websocket_client:
+    component_hash: 3fb288702517ef4d75bf933a115f1056ee0c2540d964f9e1d856e0bb67e1dfeb
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.7.0
   espressif/esp_wifi_remote:
     component_hash: caa856dac9d28afacafbaefdaaef3fffdf3f9149c6011ba36ac680a13f5fc19f
     dependencies:
@@ -136,11 +156,30 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.5.3
+    version: 5.5.4
+  sinricpro/esp-idf:
+    component_hash: a726030c2316fc6d7a2b4d435d206e76fd70b04e87dab2485f08124b82c969d3
+    dependencies:
+    - name: espressif/cjson
+      registry_url: https://components.espressif.com
+      require: private
+      version: '*'
+    - name: espressif/esp_websocket_client
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^1.2.0
+    - name: idf
+      require: private
+      version: '>=4.4'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.1.2
 direct_dependencies:
 - esp-idf-lib/bmp280
 - espressif/esp_wifi_remote
 - espressif/led_strip
-manifest_hash: 4c7f9845a3d9bede4d878153cd4105765d522084976383fc69f57464973bafc4
+- sinricpro/esp-idf
+manifest_hash: 2b5f1ded4f420f01116ec32ff2c9384b2294783a4b5b1e5bce395fde1460b042
 target: esp32c3
 version: 2.0.0

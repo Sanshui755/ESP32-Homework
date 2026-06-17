@@ -13,8 +13,8 @@ static const char *MQTT_TAG = "MQTT_MGR";
 
 // MQTT 配置
 #define MQTT_BROKER_URI "mqtt://broker.emqx.io:1883"
-#define MQTT_TOPIC "qzm_mqtt_test_topic"
-#define MQTT_TOPIC_LAMP "qzm_mqtt_topic_Lamp"
+#define MQTT_TOPIC "2023108380403_dhb_evt"  // 发布传感器数据的主题
+#define MQTT_TOPIC_LAMP "2023108380403_dhb_cmd"  // 发布灯状态的命令主题
 
 static esp_mqtt_client_handle_t s_mqtt_client = NULL;
 static TaskHandle_t s_mqtt_task_handle = NULL;

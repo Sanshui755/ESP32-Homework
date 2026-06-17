@@ -23,127 +23,12 @@
 #include "bsp.h"
 
 static const char *TAG = "example";
-static const char *DHT11_TAG = "DHT11";
 static const char *MICS5524_TAG = "MICS-5524";
 static const char *MONITOR_TAG = "MONITOR";
 static const char *BUTTON_TAG = "BUTTON";
 
 #define BUTTON_GPIO 9
-#define DHT11_GPIO 4
 #define MICS5524_ADC_CHANNEL ADC_CHANNEL_0
-
-typedef struct {
-    uint8_t humidity;
-    uint8_t temperature;
-} dht11_data_t;
-
-static esp_err_t dht11_read(dht11_data_t *data)
-{
-    if (!data) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    uint8_t buffer[5] = {0};
-    esp_err_t ret = ESP_OK;
-    
-    // 起始信号
-    gpio_set_direction(DHT11_GPIO, GPIO_MODE_OUTPUT);
-    gpio_set_level(DHT11_GPIO, 0);
-    esp_rom_delay_us(18000);
-    gpio_set_level(DHT11_GPIO, 1);
-    
-    // ==================== 关键时序开始：禁用中断 ====================
-    portDISABLE_INTERRUPTS();
-    
-    esp_rom_delay_us(40);
-    gpio_set_direction(DHT11_GPIO, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(DHT11_GPIO, GPIO_PULLUP_ONLY);
-    
-    // 等待DHT11响应
-    if (gpio_get_level(DHT11_GPIO) != 0) {
-        ret = ESP_ERR_TIMEOUT;
-        goto cleanup;
-    }
-    
-    while (gpio_get_level(DHT11_GPIO) == 0);
-    while (gpio_get_level(DHT11_GPIO) == 1);
-    
-    // 读取40位数据
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 8; j++) {
-            while (gpio_get_level(DHT11_GPIO) == 0);
-            
-            int high_time = 0;
-            while (gpio_get_level(DHT11_GPIO) == 1 && high_time < 100) {
-                esp_rom_delay_us(1);
-                high_time++;
-            }
-            
-            buffer[i] <<= 1;
-            if (high_time > 40) {
-                buffer[i] |= 1;
-            }
-        }
-    }
-    
-cleanup:
-    gpio_set_direction(DHT11_GPIO, GPIO_MODE_OUTPUT);
-    gpio_set_level(DHT11_GPIO, 1);
-    
-    // ==================== 关键时序结束：启用中断 ====================
-    portENABLE_INTERRUPTS();
-    
-    if (ret != ESP_OK) {
-        ESP_LOGW(DHT11_TAG, "DHT11 not responding");
-        return ret;
-    }
-    
-    uint8_t check_sum = buffer[0] + buffer[1] + buffer[2] + buffer[3];
-    if (check_sum != buffer[4]) {
-        ESP_LOGW(DHT11_TAG, "DHT11 checksum error");
-        return ESP_ERR_INVALID_CRC;
-    }
-    
-    data->humidity = buffer[0];
-    data->temperature = buffer[2];
-    
-    return ESP_OK;
-}
-
-static void dht11_task(void *pvParameter)
-{
-    ESP_LOGI(DHT11_TAG, "DHT11 task started");
-
-    gpio_reset_pin(DHT11_GPIO);
-    gpio_set_direction(DHT11_GPIO, GPIO_MODE_OUTPUT);
-    gpio_set_level(DHT11_GPIO, 1);
-
-    dht11_data_t data;
-    esp_err_t ret;
-
-    while (1) {
-        // 最多尝试3次
-        for (int try = 0; try < 3; try++) {
-            ret = dht11_read(&data);
-            if (ret == ESP_OK) {
-                ESP_LOGD(DHT11_TAG, "Temperature: %d°C, Humidity: %d%%",
-                        data.temperature, data.humidity);
-                // 更新到传感器数据管理器
-                sensor_data_mgr_update_temperature((float)data.temperature);
-                sensor_data_mgr_update_humidity((float)data.humidity);
-                break;
-            } else {
-                ESP_LOGW(DHT11_TAG, "Failed to read DHT11 (try %d): %s", try + 1, esp_err_to_name(ret));
-                if (try < 2) {
-                    // 重试前等待100ms
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
-                }
-            }
-        }
-
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
-}
 
 static void mics5524_task(void *pvParameter)
 {
@@ -249,9 +134,10 @@ void app_main(void)
     // Start BMP280 sensor task
     task_app_sensor_comm_start();
     
+    // Start DHT11 sensor task (high priority 23)
+    task_app_sensor_dht11_start();
+    
     // Create sensor tasks
-    // DHT11 任务设置为最高优先级 23，避免被其他任务抢占
-    xTaskCreate(dht11_task, "dht11_task", 4096, NULL, 23, NULL);
     xTaskCreate(mics5524_task, "mics5524_task", 4096, NULL, 5, NULL);
 
     // Create button task

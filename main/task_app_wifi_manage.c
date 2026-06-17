@@ -10,8 +10,8 @@
 static const char *WIFI_TAG = "WIFI_MGR";
 
 // 配置您的手机热点SSID和密码
-#define WIFI_SSID      "qzm"
-#define WIFI_PASS      "130168130168"
+#define WIFI_SSID      "dhb403"
+#define WIFI_PASS      "12345678"
 
 // WiFi 状态
 static wifi_state_t s_wifi_state = WIFI_STATE_DISCONNECTED;

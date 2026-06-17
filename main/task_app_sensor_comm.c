@@ -2,11 +2,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 #include "bmp280.h"
 #include "sensor_data_mgr.h"
 #include <string.h>
 
 static const char *BMP_TAG = "BMP280";
+static const char *DHT11_TAG = "DHT11";
+
+#define DHT11_GPIO 4
 
 // Task handle
 static TaskHandle_t s_bmp_task_handle = NULL;
@@ -134,5 +138,126 @@ void task_app_sensor_comm_start(void)
         ESP_LOGI(BMP_TAG, "BMP280 sensor task created successfully");
     } else {
         ESP_LOGE(BMP_TAG, "Failed to create BMP280 sensor task");
+    }
+}
+
+// ==================== DHT11 Driver ====================
+
+typedef struct {
+    uint8_t humidity;
+    uint8_t temperature;
+} dht11_data_t;
+
+static esp_err_t dht11_read(dht11_data_t *data)
+{
+    if (!data) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    uint8_t buffer[5] = {0};
+    esp_err_t ret = ESP_OK;
+    
+    gpio_set_direction(DHT11_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(DHT11_GPIO, 0);
+    esp_rom_delay_us(18000);
+    gpio_set_level(DHT11_GPIO, 1);
+    
+    portDISABLE_INTERRUPTS();
+    
+    esp_rom_delay_us(40);
+    gpio_set_direction(DHT11_GPIO, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(DHT11_GPIO, GPIO_PULLUP_ONLY);
+    
+    if (gpio_get_level(DHT11_GPIO) != 0) {
+        ret = ESP_ERR_TIMEOUT;
+        goto cleanup;
+    }
+    
+    while (gpio_get_level(DHT11_GPIO) == 0);
+    while (gpio_get_level(DHT11_GPIO) == 1);
+    
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 8; j++) {
+            while (gpio_get_level(DHT11_GPIO) == 0);
+            
+            int high_time = 0;
+            while (gpio_get_level(DHT11_GPIO) == 1 && high_time < 100) {
+                esp_rom_delay_us(1);
+                high_time++;
+            }
+            
+            buffer[i] <<= 1;
+            if (high_time > 40) {
+                buffer[i] |= 1;
+            }
+        }
+    }
+    
+cleanup:
+    gpio_set_direction(DHT11_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(DHT11_GPIO, 1);
+    
+    portENABLE_INTERRUPTS();
+    
+    if (ret != ESP_OK) {
+        return ret;
+    }
+    
+    uint8_t check_sum = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+    if (check_sum != buffer[4]) {
+        return ESP_ERR_INVALID_CRC;
+    }
+    
+    data->humidity = buffer[0];
+    data->temperature = buffer[2];
+    
+    return ESP_OK;
+}
+
+static void task_app_dht11(void *pvParameter)
+{
+    ESP_LOGI(DHT11_TAG, "DHT11 task started");
+
+    gpio_reset_pin(DHT11_GPIO);
+    gpio_set_direction(DHT11_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(DHT11_GPIO, 1);
+
+    dht11_data_t data;
+    esp_err_t ret;
+
+    while (1) {
+        for (int try = 0; try < 3; try++) {
+            ret = dht11_read(&data);
+            if (ret == ESP_OK) {
+                ESP_LOGD(DHT11_TAG, "Temperature: %d°C, Humidity: %d%%",
+                        data.temperature, data.humidity);
+                sensor_data_mgr_update_temperature((float)data.temperature);
+                sensor_data_mgr_update_humidity((float)data.humidity);
+                break;
+            } else {
+                if (try < 2) {
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                }
+            }
+        }
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+    }
+}
+
+void task_app_sensor_dht11_start(void)
+{
+    BaseType_t ret = xTaskCreate(
+        task_app_dht11,
+        "task_app_dht11",
+        4096,
+        NULL,
+        23,
+        NULL
+    );
+    
+    if (ret == pdPASS) {
+        ESP_LOGI(DHT11_TAG, "DHT11 sensor task created successfully");
+    } else {
+        ESP_LOGE(DHT11_TAG, "Failed to create DHT11 sensor task");
     }
 }
