@@ -1,6 +1,7 @@
 #include "bsp.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 #include "led_strip.h"
 #include "sdkconfig.h"
 
@@ -39,6 +40,11 @@ void bsp_init(void)
     
     // 初始关闭LED
     led_strip_clear(s_led_strip_handle);
+
+    // 初始化蜂鸣器 GPIO
+    gpio_reset_pin(BSP_BUZZER_GPIO);
+    gpio_set_direction(BSP_BUZZER_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(BSP_BUZZER_GPIO, 1);   // 默认高电平，蜂鸣器不响
 }
 
 void bsp_led_set_color(uint8_t red, uint8_t green, uint8_t blue)
@@ -76,4 +82,16 @@ void bsp_led_toggle(void)
 uint8_t bsp_led_get_state(void)
 {
     return s_led_state;
+}
+
+void bsp_beep_on(void)
+{
+    gpio_set_level(BSP_BUZZER_GPIO, 0);   // 低电平触发（有源蜂鸣器）
+    ESP_LOGW(BSP_TAG, "BEEP ON  [警报]");
+}
+
+void bsp_beep_off(void)
+{
+    gpio_set_level(BSP_BUZZER_GPIO, 1);   // 高电平关闭
+    ESP_LOGI(BSP_TAG, "BEEP OFF [警报解除]");
 }

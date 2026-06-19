@@ -4,7 +4,7 @@
     "board/esp32c3-builtin.cfg"
   ],
   "idf.portWin": "COM15",
-  "idf.currentSetup": "C:\\esp\\v5.5.3\\esp-idf",
+  "idf.currentSetup": "f:\\ESP-IDF\\esp-idf\\v5.5.4\\esp-idf",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32c3"
   },

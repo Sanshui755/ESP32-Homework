@@ -48,4 +48,11 @@ void bsp_led_toggle(void);
  */
 uint8_t bsp_led_get_state(void);
 
+// 蜂鸣器引脚定义
+#define BSP_BUZZER_GPIO 10
+
+// 蜂鸣器控制（无硬件时用日志输出代替）
+void bsp_beep_on(void);
+void bsp_beep_off(void);
+
 #endif // BSP_H

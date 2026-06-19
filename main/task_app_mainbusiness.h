@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// 温度告警阈值
+#define ALARM_TEMP_THRESHOLD  32.0f
+
 // 状态机状态定义
 typedef enum {
     APP_STATE_INIT = 0,        // S0: 初始状态

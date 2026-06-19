@@ -90,6 +90,26 @@ static void process_state_machine(void)
 {
     // Update sensor data first
     update_sensor_data();
+
+    // 温度告警检查
+    static bool alarm_active = false;
+
+    if (s_sensor_data.temperature_valid
+        && s_sensor_data.temperature > ALARM_TEMP_THRESHOLD) {
+        if (!alarm_active) {
+            bsp_beep_on();
+            ESP_LOGW(APP_TAG, "高温告警！当前温度: %.1f°C (阈值: %.1f°C)",
+                     s_sensor_data.temperature, ALARM_TEMP_THRESHOLD);
+            alarm_active = true;
+        }
+    } else {
+        if (alarm_active) {
+            bsp_beep_off();
+            ESP_LOGI(APP_TAG, "告警解除，温度恢复正常: %.1f°C",
+                     s_sensor_data.temperature);
+            alarm_active = false;
+        }
+    }
     
     // Execute current state
     switch (s_current_state) {
