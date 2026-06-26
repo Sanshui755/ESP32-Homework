@@ -1,3 +1,11 @@
+# qzmAdd
+*.docx
+Agent记录_*.md
+Agent聊天记录_*.md
+
+# ESP-IDF 组件管理器生成的配置备份
+sdkconfig.old
+
 # macOS
 .DS_Store
 .AppleDouble

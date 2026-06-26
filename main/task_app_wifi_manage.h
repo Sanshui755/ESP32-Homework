@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 // WiFi 连接状态定义
 typedef enum {
@@ -14,17 +16,21 @@ typedef enum {
 
 /**
  * @brief Get current WiFi state
- * 
- * @return Current WiFi state
  */
 wifi_state_t app_get_wifi_state(void);
 
 /**
  * @brief Check if WiFi is connected
- * 
- * @return true if connected, false otherwise
  */
 bool app_wifi_is_connected(void);
+
+/**
+ * @brief Block the calling task until WiFi is connected or timeout.
+ *        Uses FreeRTOS event group (no polling).
+ * @param timeout_ticks Maximum time to wait, in FreeRTOS ticks
+ * @return true if connected, false if timeout
+ */
+bool app_wifi_wait_for_connection(TickType_t timeout_ticks);
 
 /**
  * @brief Initialize and start WiFi management task
