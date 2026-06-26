@@ -107,7 +107,7 @@ static void task_app_mqtt(void *pvParameter)
     char json_buf[256];
     
     while (1) {
-        // 如果已连接，每 3 秒发送一次数据
+        // 如果已连接，每 5 秒发送一次数据
         if (s_mqtt_connected) {
             // 获取传感器数据JSON
             int json_len = sensor_data_mgr_get_json(json_buf, sizeof(json_buf));
@@ -120,8 +120,8 @@ static void task_app_mqtt(void *pvParameter)
             }
         }
         
-        // 等待 3 秒
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
+        // 等待 5 秒
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
 
